@@ -32,12 +32,13 @@ function adminOnly(req, res, next) {
   if (!req.user?.isAdmin) return res.status(403).json({ error: 'רק מנהל המערכת יכול לבצע פעולה זו' });
   next();
 }
-const USERNAME_RE = /^[\p{L}\p{N}_.-]{2,24}$/u;
+const USERNAME_RE = /^[\p{L}\p{N}_.-]+( [\p{L}\p{N}_.-]+)*$/u; // מותרים רווחים בודדים ("עדי טמיר")
+const cleanName = (s) => String(s || '').trim().replace(/\s+/g, ' ');
 
 app.post('/api/auth/register', (req, res) => {
-  const username = String(req.body.username || '').trim();
+  const username = cleanName(req.body.username);
   const pin = String(req.body.pin || '');
-  if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'שם משתמש: 2–24 תווים, אותיות/ספרות בלבד, בלי רווחים' });
+  if (!USERNAME_RE.test(username) || username.length < 2 || username.length > 24) return res.status(400).json({ error: 'שם משתמש: 2–24 תווים, אותיות, ספרות ורווחים' });
   if (!/^\d{4,8}$/.test(pin)) return res.status(400).json({ error: 'קוד אישי: 4–8 ספרות' });
   if (db.prepare('SELECT 1 FROM users WHERE username = ?').get(username)) return res.status(409).json({ error: 'שם המשתמש כבר תפוס' });
   const r = db.prepare('INSERT INTO users (username, display_name, pin_hash) VALUES (?, ?, ?)').run(username, username, hashPin(pin));
@@ -46,7 +47,7 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 app.post('/api/auth/login', (req, res) => {
-  const u = db.prepare('SELECT * FROM users WHERE username = ?').get(String(req.body.username || '').trim());
+  const u = db.prepare('SELECT * FROM users WHERE username = ?').get(cleanName(req.body.username));
   if (!u || !checkPin(String(req.body.pin || ''), u.pin_hash)) return res.status(401).json({ error: 'שם משתמש או קוד שגויים' });
   startSession(res, u.id);
   res.json({ ok: true });

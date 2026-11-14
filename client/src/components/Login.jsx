@@ -32,7 +32,7 @@ export default function Login({ onDone }) {
         </div>
         <form onSubmit={submit} className="form">
           <label>שם משתמש
-            <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required autoFocus placeholder={mode === 'register' ? 'בחרו שם (בלי רווחים)' : ''} />
+            <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required autoFocus placeholder={mode === 'register' ? 'למשל: נועה' : ''} />
           </label>
           <label>{mode === 'register' ? 'בחרו קוד אישי (4–8 ספרות)' : 'קוד אישי'}
             <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} inputMode="numeric" type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required maxLength={8} />

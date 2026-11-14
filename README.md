@@ -9,14 +9,14 @@
 ```bash
 npm install
 npm run build
-ADMIN_USERNAME=aba ADMIN_PASSWORD=1234 npm start
+ADMIN_PASSWORD=הקוד_שלך npm start
 ```
 
 נכנסים לכתובת http://localhost:3000.
 
 | משתנה | משמעות | ברירת מחדל |
 |---|---|---|
-| `ADMIN_USERNAME` | שם המשתמש הקבוע של מנהל המערכת | `admin` |
+| `ADMIN_USERNAME` | שם המשתמש הקבוע של מנהל המערכת | `עדי טמיר` |
 | `ADMIN_PASSWORD` | הקוד של המנהל (מתעדכן בכל הפעלה) | `1234` (כדאי לשנות) |
 | `PORT` | פורט | `3000` |
 | `DB_PATH` | קובץ מסד הנתונים | `data/cantamos.db` |

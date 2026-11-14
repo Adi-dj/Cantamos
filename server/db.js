@@ -72,7 +72,7 @@ export function seed() {
   }
 
   // מנהל המערכת: שם משתמש קבוע מתוך משתני הסביבה
-  const adminName = (process.env.ADMIN_USERNAME || 'admin').trim();
+  const adminName = (process.env.ADMIN_USERNAME || 'עדי טמיר').trim().replace(/\s+/g, ' ');
   const adminPass = process.env.ADMIN_PASSWORD || '1234';
   const existing = db.prepare('SELECT * FROM users WHERE username = ?').get(adminName);
   if (!existing) {
