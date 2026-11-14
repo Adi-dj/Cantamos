@@ -2,9 +2,9 @@
 
 אפליקציה משפחתית ללימוד ספרדית באמצעות שירים, מהקל אל הקשה.
 
-## הפעלה
+## הפעלה מקומית
 
-דרוש Node.js 22.5 ומעלה (משתמש ב-SQLite המובנה ב-Node).
+דרוש Node.js 22 ומעלה.
 
 ```bash
 npm install
@@ -12,18 +12,20 @@ npm run build
 ADMIN_PASSWORD=הקוד_שלך npm start
 ```
 
-נכנסים לכתובת http://localhost:3000.
+נכנסים לכתובת http://localhost:3000. במחשב המקומי הנתונים נשמרים בתיקייה `data/` (מסד Postgres מוטמע, בלי התקנה).
+לפיתוח עם טעינה מחדש: `npm run dev` ואז http://localhost:5173.
 
 | משתנה | משמעות | ברירת מחדל |
 |---|---|---|
 | `ADMIN_USERNAME` | שם המשתמש הקבוע של מנהל המערכת | `עדי טמיר` |
 | `ADMIN_PASSWORD` | הקוד של המנהל (מתעדכן בכל הפעלה) | `1234` (כדאי לשנות) |
-| `PORT` | פורט | `3000` |
-| `DB_PATH` | קובץ מסד הנתונים | `data/cantamos.db` |
+| `DATABASE_URL` | כתובת מסד PostgreSQL (למשל Neon). אם לא מוגדר – מסד מקומי | — |
 
-לפיתוח עם טעינה מחדש: `npm run dev` ואז http://localhost:5173.
+## העלאה ל-Vercel (חינם, הנתונים נשמרים)
 
-כדי שכל המשפחה תוכל להיכנס מהטלפון, מעלים את השרת לשירות אירוח (Render / Railway / Fly.io) עם **דיסק קבוע** לתיקייה `data/`, או מריצים אותו על מחשב בבית ברשת הביתית.
+1. ב-Vercel: **Add New → Project** ובוחרים את המאגר הזה. ההגדרות נקראות מ-`vercel.json`.
+2. ב-**Environment Variables** מוסיפים `ADMIN_PASSWORD`.
+3. אחרי ההעלאה: **Storage → Create Database → Neon (Postgres)**, מחברים לפרויקט (נוצר `DATABASE_URL`), ואז **Redeploy**.
 
 ## מה יש באפליקציה
 

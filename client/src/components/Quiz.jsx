@@ -63,7 +63,7 @@ export default function Quiz({ song, history, onLogged }) {
                 const pct = Math.round((h.score / h.max_score) * 100);
                 return (
                   <li key={k}>
-                    <span className="small muted">{new Date(h.created_at + 'Z').toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                    <span className="small muted">{new Date(h.created_at).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}</span>
                     <div className="bar"><span style={{ width: `${pct}%` }} /></div>
                     <b>{pct}%</b>
                   </li>

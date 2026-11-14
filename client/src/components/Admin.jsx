@@ -183,7 +183,7 @@ export default function Admin() {
             {users.map((u) => (
               <tr key={u.id}>
                 <td>{u.username}{u.is_admin ? <em className="badge">מנהל</em> : null}</td>
-                <td className="small muted">{new Date(u.created_at + 'Z').toLocaleDateString('he-IL')}</td>
+                <td className="small muted">{new Date(u.created_at).toLocaleDateString('he-IL')}</td>
                 <td className="row gap">
                   {!u.is_admin && <>
                     <button className="btn small" onClick={() => { const pin = prompt(`קוד חדש ל-${u.username} (4–8 ספרות):`); if (pin) act(() => api.post(`/api/admin/users/${u.id}/pin`, { pin }), 'הקוד עודכן'); }}>איפוס קוד</button>

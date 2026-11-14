@@ -132,7 +132,7 @@ export default function Family({ me }) {
                 <span className="avatar lg" style={{ background: colorVar(ui) }}>{u.name[0]?.toUpperCase()}</span>
                 <div>
                   <b>{u.name}</b>{u.isAdmin && <em className="badge">מנהל</em>}{ranked[0]?.id === u.id && u.xp > 0 && <span title="מוביל/ה בנקודות"> 🏆</span>}
-                  <div className="small muted">{u.lastActive ? `פעילות אחרונה: ${new Date(u.lastActive + 'Z').toLocaleDateString('he-IL')}` : 'עוד לא התחיל/ה'}</div>
+                  <div className="small muted">{u.lastActive ? `פעילות אחרונה: ${new Date(u.lastActive).toLocaleDateString('he-IL')}` : 'עוד לא התחיל/ה'}</div>
                 </div>
               </div>
               <div className="stats">
