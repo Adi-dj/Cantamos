@@ -1,0 +1,15 @@
+# הגדרות העלאה ל-Render (גרסה חינמית לניסיון – הנתונים לא נשמרים לצמיתות)
+services:
+  - type: web
+    name: cantamos
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "22.12.0"
+      - key: ADMIN_USERNAME
+        value: עדי טמיר
+      - key: ADMIN_PASSWORD
+        sync: false   # Render יבקש להקליד את הקוד בזמן ההגדרה
