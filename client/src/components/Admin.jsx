@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import { api } from '../api.js';
 
 const PRONOUNS = ['yo', 'tú', 'él/ella', 'nosotros', 'vosotros', 'ellos'];
@@ -127,11 +127,11 @@ function SongEditor({ song, template, onClose, onSaved }) {
 const fmtDur = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
 // הוספה מהירה: קישור ספוטיפיי או שם שיר → מילים מסונכרנות → תרגום ואוצר מילים אוטומטיים
-function QuickAdd({ onDraft, onManual, onClose }) {
-  const [mode, setMode] = useState('link');
+function QuickAdd({ preset, onDraft, onManual, onClose }) {
+  const [mode, setMode] = useState(preset ? 'name' : 'link');
   const [link, setLink] = useState('');
-  const [title, setTitle] = useState('');
-  const [artist, setArtist] = useState('');
+  const [title, setTitle] = useState(preset?.title || '');
+  const [artist, setArtist] = useState(preset?.artist || '');
   const [found, setFound] = useState(null);
   const [lyrics, setLyrics] = useState('');
   const [busy, setBusy] = useState('');
@@ -147,9 +147,12 @@ function QuickAdd({ onDraft, onManual, onClose }) {
   const build = async (body) => {
     setErr(''); setBusy('מתרגמים ובונים אוצר מילים… (עד חצי דקה)');
     try {
-      onDraft(await api.post('/api/admin/import/build', { title: found?.title || title, artist: found?.artist || artist, spotifyUrl: found?.spotifyUrl || '', ...body }));
+      const draft = await api.post('/api/admin/import/build', { title: found?.title || title, artist: found?.artist || artist, spotifyUrl: found?.spotifyUrl || '', ...body });
+      // שיר מרשימת ההצעות: הרמה, הניב והשלב מההצעה (אלא אם יש לו ערכה מוכנה)
+      onDraft(preset && !preset.pack ? { ...draft, level: preset.level, variant: preset.variant, stage: `שלב ${preset.level} · ${preset.focus}` } : draft);
     } catch (e2) { setErr(e2.message); setBusy(''); }
   };
+  useEffect(() => { if (preset) search(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="card quick-add stack">
@@ -254,6 +257,8 @@ export default function Admin() {
   if (!state) return <div className="spinner" />;
 
   const current = state.songs.find((s) => s.current);
+  const key = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  const inPath = (sg) => state.songs.some((x) => key(x.title).startsWith(key(sg.title)) && key(sg.title));
   const locked = state.songs.filter((s) => !s.unlocked);
   const next = locked.find((s) => !current || s.level > current.level) || locked[0];
   const act = async (fn, ok) => { setMsg(''); try { await fn(); setMsg(ok); load(); } catch (e) { setMsg('⚠️ ' + e.message); } };
@@ -264,7 +269,7 @@ export default function Admin() {
     scrollTo(0, 0);
   };
 
-  if (editing?.quick) return <QuickAdd onClose={() => setEditing(null)} onManual={() => setEditing({ template: null })} onDraft={(d) => { setEditing({ template: d }); scrollTo(0, 0); }} />;
+  if (editing?.quick) return <QuickAdd preset={editing.preset} onClose={() => setEditing(null)} onManual={() => setEditing({ template: null })} onDraft={(d) => { setEditing({ template: d }); scrollTo(0, 0); }} />;
   if (editing) return <SongEditor {...editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setSongsFull({}); setMsg('השיר נשמר ✓'); load(); }} />;
 
   return (
@@ -314,15 +319,16 @@ export default function Admin() {
         <h2>הצעות לשירים מודרניים בסגנון שביקשתם</h2>
         <p className="small muted">המילים של שירים אלה מוגנות בזכויות יוצרים, ולכן אינן כלולות. לחצו "הוספה" כדי לפתוח טופס עם הפרטים, והדביקו את המילים והתרגום. בשירים עם "ערכה מוכנה" אוצר המילים, הפעלים, הדקדוק והרקע כבר ממולאים. שימו לב לניב: Maná (מקסיקו) ו-Mercedes Sosa (ארגנטינה) שונים מהספרדית של ספרד.</p>
         <ul className="sugg">
-          {sugg.map((s) => (
+          {[...sugg].sort((a, b) => a.artist.localeCompare(b.artist) || a.level - b.level).map((s, i, arr) => (<Fragment key={s.artist + s.title}>
+            {arr[i - 1]?.artist !== s.artist && <li className="sugg-artist" lang="es">{s.artist}</li>}
             <li key={s.artist + s.title}>
               <div><b lang="es">{s.title}</b> · <span lang="es">{s.artist}</span> <span className="badge soft">רמה {s.level}</span>{s.pack && <span className="badge">ערכה מוכנה</span>}<div className="small muted">{s.variant} · {s.focus}</div></div>
               <div className="row gap">
                 <a className="btn small ghost" target="_blank" rel="noreferrer" href={`https://open.spotify.com/search/${encodeURIComponent(`${s.artist} ${s.title.startsWith('(') ? '' : s.title}`)}`}>ספוטיפיי ↗</a>
-                <button className="btn small" onClick={() => setEditing({ template: { stage: `שלב ${s.level} · ${s.focus}`, ...s.pack, title: s.title.startsWith('(') ? '' : s.title, artist: s.artist, level: s.level, variant: s.variant } })}>הוספה</button>
+                {inPath(s) ? <span className="badge soft">✓ כבר במסלול</span> : <button className="btn small primary" onClick={() => { setEditing({ quick: true, preset: s }); scrollTo(0, 0); }}>＋ הוספה</button>}
               </div>
             </li>
-          ))}
+          </Fragment>))}
         </ul>
       </section>
 

@@ -645,7 +645,16 @@ export const MODERN_SUGGESTIONS = [
   { artist: 'Maná', title: 'Clavado en un bar', level: 6.5, variant: 'México', focus: 'estar + תואר, ביטויים' },
   { artist: 'Fito y Fitipaldis', title: 'Soldadito marinero', level: 7, variant: 'España', focus: 'עבר, דימויים' },
   { artist: 'Maná', title: 'En el muelle de San Blas', level: 7.5, variant: 'México', focus: 'סיפור בעבר: indefinido / imperfecto' },
-  { artist: 'Muerdo', title: '(בחרו שיר)', level: 8, variant: 'España (Murcia)', focus: 'אינדי-פולק עם מסרים, לרמה מתקדמת' },
-  { artist: 'Estopa', title: 'Como Camarón', level: 9, variant: 'España (סלנג)', focus: 'סלנג, דיבור מהיר' },
-  { artist: 'Estopa', title: 'Vino tinto', level: 9, variant: 'España', focus: 'שפת רחוב, subjuntivo' },
+  // Muerdo – זמר-יוצר ממורסיה: פולק-פופ עם מסרים, ספרדית של ספרד ברורה
+  { artist: 'Muerdo', title: 'Semillas', level: 6, variant: 'España (Murcia) · עם Perotá Chingó (ארגנטינה)', focus: 'שיר רך וברור, טוב להקשבה' },
+  { artist: 'Muerdo', title: 'Tiempo al tiempo', level: 6.5, variant: 'España (Murcia)', focus: 'ביטויים יומיומיים, זמן' },
+  { artist: 'Muerdo', title: 'Lejos de la ciudad', level: 6.5, variant: 'España (Murcia)', focus: 'מקומות וטבע, תיאור' },
+  { artist: 'Muerdo', title: 'Tendré canciones', level: 7, variant: 'España (Murcia)', focus: 'עתיד (tendré = יהיו לי)' },
+  // Estopa – צמד אחים מקורנייה (ברצלונה): רומבה-רוק, דיבור מהיר וסלנג – לרמה מתקדמת
+  { artist: 'Estopa', title: 'Me falta el aliento', level: 8, variant: 'España (Barcelona)', focus: 'בלדה – הכי ברור מבין שירי Estopa' },
+  { artist: 'Estopa', title: 'Tu calorro', level: 8.5, variant: 'España (Barcelona)', focus: 'שפה מדוברת, מילים מעולם הצוענים (caló)' },
+  { artist: 'Estopa', title: 'Por la raja de tu falda', level: 9, variant: 'España (Barcelona)', focus: 'סיפור מצחיק בעבר, סלנג' },
+  { artist: 'Estopa', title: 'Como Camarón', level: 9, variant: 'España (Barcelona)', focus: 'סלנג, דיבור מהיר' },
+  { artist: 'Estopa', title: 'Vino tinto', level: 9, variant: 'España (Barcelona)', focus: 'שפת רחוב' },
+  { artist: 'Estopa', title: 'El run run', level: 9.5, variant: 'España (Barcelona)', focus: 'קצב מהיר, שפה מדוברת' },
 ];

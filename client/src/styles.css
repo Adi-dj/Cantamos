@@ -418,3 +418,6 @@ bdi { unicode-bidi: isolate; }
 .user-admin > li { padding: .75rem 0; border-bottom: 1px solid var(--line); }
 .user-admin > li:last-child { border-bottom: 0; }
 .user-edit { background: var(--surface-2); padding: .9rem; border-radius: 12px; }
+
+.sugg-artist { font-weight: 700; font-size: 1.05rem; padding-top: 1rem !important; border-bottom: 2px solid var(--accent) !important; color: var(--accent); }
+.badge { white-space: nowrap; display: inline-block; }
