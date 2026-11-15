@@ -1,6 +1,8 @@
 // הוספה מהירה של שיר: מילים מ-LRCLIB (חינמי, כולל זמני סנכרון), תרגום מכונה חינמי מ-MyMemory,
 // אוצר מילים לפי שכיחות, טבלאות הטיה בהווה, והצעת רמה. בלי AI ובלי מפתחות.
 
+import { MODERN_SUGGESTIONS } from './seedSongs.js';
+
 const UA = 'Cantamos family Spanish app (https://github.com/Adi-dj/cantamos)';
 const TIMEOUT = 8000;
 
@@ -185,15 +187,29 @@ export async function buildDraft({ lrclibId, lyrics, title, artist, spotifyUrl }
   const tr = (s) => map.get(s) || '—';
   const level = suggestLevel(lines);
 
+  // לשיר שיש לו ערכה מוכנה: אוצר המילים, הפעלים, הדקדוק והרקע מהערכה (במקום הניחוש האוטומטי)
+  const key = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  const sugg = MODERN_SUGGESTIONS.find((m) => m.pack && key(m.title) && key(meta.title).startsWith(key(m.title)));
+  if (sugg) {
+    const p = sugg.pack;
+    return {
+      title: meta.title || sugg.title, artist: meta.artist || sugg.artist, spotifyUrl: spotifyUrl || '', spotifySearch: p.spotifySearch,
+      level: sugg.level, stage: p.stage, origin: '', variant: sugg.variant, culture: p.culture, grammar: p.grammar,
+      lines: lines.map((l) => ({ es: l.es, he: tr(l.es), t: l.t })), vocab: p.vocab, verbs: p.verbs,
+      warnings: [`לשיר הזה יש ערכה מוכנה – אוצר המילים, הפעלים, הדקדוק והרקע נלקחו ממנה.`, ...warningsFor(quota, lines)],
+    };
+  }
+
   return {
     title: meta.title || '', artist: meta.artist || '', spotifyUrl: spotifyUrl || '', spotifySearch: `${meta.title || ''} ${meta.artist || ''}`.trim(),
     level, stage: `שלב ${level}`, origin: '', variant: '', culture: '', grammar: null,
     lines: lines.map((l) => ({ es: l.es, he: tr(l.es), t: l.t })),
     vocab: vocabWords.map((w) => ({ es: w, he: tr(w), type: guessType(w) })),
     verbs: verbs.map((v) => ({ ...v, he: tr(v.inf) })),
-    warnings: [
-      ...(quota ? ['מכסת התרגום החינמי היומית נגמרה – חלק מהשורות סומנו "—". אפשר לתרגם אותן ידנית או לנסות שוב מחר.'] : []),
-      ...(lines.some((l) => l.t != null) ? [] : ['למילים האלה אין זמני סנכרון – אפשר לסנכרן אחר כך בעמוד השיר.']),
-    ],
+    warnings: warningsFor(quota, lines),
   };
 }
+const warningsFor = (quota, lines) => [
+  ...(quota ? ['מכסת התרגום החינמי היומית נגמרה – חלק מהשורות סומנו "—". אפשר לתרגם אותן ידנית או לנסות שוב מחר.'] : []),
+  ...(lines.some((l) => l.t != null) ? [] : ['למילים האלה אין זמני סנכרון – אפשר לסנכרן אחר כך בעמוד השיר.']),
+];
