@@ -53,6 +53,7 @@ const SCHEMA = [
     max_score INTEGER NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
   `CREATE INDEX IF NOT EXISTS activity_user_song ON activity_log (user_id, song_id)`,
+  `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)`,
 ];
 
 // ---------- PIN hashing ----------
@@ -78,10 +79,8 @@ async function init() {
   await connect();
   for (const s of SCHEMA) await q(s);
 
-  for (const s of SEED_SONGS) {
-    await q('INSERT INTO songs (slug, level, source, data) VALUES ($1, $2, $3, $4::jsonb) ON CONFLICT (slug) DO NOTHING',
-      [s.slug, s.level, 'seed', JSON.stringify(s)]);
-  }
+  await syncSeedSongs();
+  // תמיד יש שיר משפחתי פתוח (גם במסד חדש, וגם אם השיר הנוכחי הוסר מהתוכנית)
   if (!(await one('SELECT 1 AS x FROM unlocked LIMIT 1'))) {
     const first = (await orderedSongs())[0];
     if (first) await q('INSERT INTO unlocked (song_id) VALUES ($1) ON CONFLICT DO NOTHING', [first.id]);
@@ -98,6 +97,30 @@ async function init() {
   }
   await q('UPDATE users SET is_admin = FALSE WHERE lower(username) <> lower($1) AND is_admin', [adminName]);
   if (!process.env.ADMIN_PASSWORD) console.warn(`⚠️  ADMIN_PASSWORD לא הוגדר – הקוד של "${adminName}" הוא 1234.`);
+}
+
+// ---------- סנכרון תוכנית השירים ----------
+// רץ רק כשרשימת השירים בקוד השתנתה. שירי בסיס שהמנהל ערך (source = 'seed-edited') לא נדרסים.
+// שירי בסיס שהוסרו מהקוד נמחקים. קישור הספוטיפיי וזמני הסנכרון נשמרים לשורות שלא השתנו.
+async function syncSeedSongs() {
+  const version = crypto.createHash('sha1').update(JSON.stringify(SEED_SONGS)).digest('hex');
+  if ((await one("SELECT value FROM meta WHERE key = 'seed_version'"))?.value === version) return;
+  const existing = await q("SELECT id, slug, source, data FROM songs WHERE source IN ('seed', 'seed-edited')");
+  for (const s of SEED_SONGS) {
+    const ex = existing.find((e) => e.slug === s.slug);
+    if (!ex) {
+      await q('INSERT INTO songs (slug, level, source, data) VALUES ($1, $2, $3, $4::jsonb) ON CONFLICT (slug) DO NOTHING',
+        [s.slug, s.level, 'seed', JSON.stringify(s)]);
+    } else if (ex.source === 'seed') {
+      const old = ex.data;
+      const lines = s.lines.map((l, i) => ({ ...l, t: old.lines?.[i]?.es === l.es ? old.lines[i].t ?? null : null }));
+      const merged = { ...s, lines, spotifyUrl: old.spotifyUrl || '' };
+      await q('UPDATE songs SET level = $1, data = $2::jsonb WHERE id = $3', [s.level, JSON.stringify(merged), ex.id]);
+    }
+  }
+  const slugs = new Set(SEED_SONGS.map((s) => s.slug));
+  for (const ex of existing) if (ex.source === 'seed' && !slugs.has(ex.slug)) await q('DELETE FROM songs WHERE id = $1', [ex.id]);
+  await q("INSERT INTO meta (key, value) VALUES ('seed_version', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", [version]);
 }
 
 // ---------- songs ----------

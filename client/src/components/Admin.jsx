@@ -105,7 +105,8 @@ export default function Admin() {
   if (!state) return <div className="spinner" />;
 
   const current = state.songs.find((s) => s.current);
-  const next = state.songs.find((s) => !s.unlocked);
+  const locked = state.songs.filter((s) => !s.unlocked);
+  const next = locked.find((s) => !current || s.level > current.level) || locked[0];
   const act = async (fn, ok) => { setMsg(''); try { await fn(); setMsg(ok); load(); } catch (e) { setMsg('⚠️ ' + e.message); } };
   const openEdit = async (id) => {
     const full = songsFull[id] || (await api.get(`/api/songs/${id}`)).song;
@@ -161,14 +162,14 @@ export default function Admin() {
 
       <section className="card">
         <h2>הצעות לשירים מודרניים בסגנון שביקשתם</h2>
-        <p className="small muted">המילים של שירים אלה מוגנות בזכויות יוצרים, ולכן אינן כלולות. לחצו "הוספה" כדי לפתוח טופס עם הפרטים, והדביקו את המילים והתרגום. שימו לב לניב: Maná (מקסיקו) ו-Mercedes Sosa (ארגנטינה) שונים מהספרדית של ספרד.</p>
+        <p className="small muted">המילים של שירים אלה מוגנות בזכויות יוצרים, ולכן אינן כלולות. לחצו "הוספה" כדי לפתוח טופס עם הפרטים, והדביקו את המילים והתרגום. בשירים עם "ערכה מוכנה" אוצר המילים, הפעלים, הדקדוק והרקע כבר ממולאים. שימו לב לניב: Maná (מקסיקו) ו-Mercedes Sosa (ארגנטינה) שונים מהספרדית של ספרד.</p>
         <ul className="sugg">
           {sugg.map((s) => (
             <li key={s.artist + s.title}>
-              <div><b lang="es">{s.title}</b> · <span lang="es">{s.artist}</span> <span className="badge soft">רמה {s.level}</span><div className="small muted">{s.variant} · {s.focus}</div></div>
+              <div><b lang="es">{s.title}</b> · <span lang="es">{s.artist}</span> <span className="badge soft">רמה {s.level}</span>{s.pack && <span className="badge">ערכה מוכנה</span>}<div className="small muted">{s.variant} · {s.focus}</div></div>
               <div className="row gap">
                 <a className="btn small ghost" target="_blank" rel="noreferrer" href={`https://open.spotify.com/search/${encodeURIComponent(`${s.artist} ${s.title.startsWith('(') ? '' : s.title}`)}`}>ספוטיפיי ↗</a>
-                <button className="btn small" onClick={() => setEditing({ template: { title: s.title.startsWith('(') ? '' : s.title, artist: s.artist, level: s.level, variant: s.variant, stage: `שלב ${s.level} · ${s.focus}` } })}>הוספה</button>
+                <button className="btn small" onClick={() => setEditing({ template: { stage: `שלב ${s.level} · ${s.focus}`, ...s.pack, title: s.title.startsWith('(') ? '' : s.title, artist: s.artist, level: s.level, variant: s.variant } })}>הוספה</button>
               </div>
             </li>
           ))}

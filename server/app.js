@@ -150,7 +150,11 @@ app.post('/api/admin/advance', auth, adminOnly, h(async (req, res) => {
     // שיר שכבר נפתח – הופך שוב לשיר המשפחתי הנוכחי
     if (unlockedSet.has(target.id)) await q('DELETE FROM unlocked WHERE song_id = $1', [target.id]);
   } else {
-    target = (await orderedSongs()).find((s) => !unlockedSet.has(s.id));
+    // השיר הבא: הראשון שעוד לא נפתח ברמה גבוהה מהשיר הנוכחי (ואם אין – הראשון שעוד לא נפתח)
+    const [all, curId] = await Promise.all([orderedSongs(), currentSongId()]);
+    const cur = all.find((s) => s.id === curId);
+    const locked = all.filter((s) => !unlockedSet.has(s.id));
+    target = locked.find((s) => !cur || s.level > cur.level) || locked[0];
     if (!target) return res.status(400).json({ error: 'כל השירים כבר נפתחו – הוסיפו שיר חדש באזור הניהול' });
   }
   await q('INSERT INTO unlocked (song_id) VALUES ($1) ON CONFLICT DO NOTHING', [target.id]);
@@ -196,14 +200,16 @@ app.put('/api/admin/songs/:id', auth, adminOnly, h(async (req, res) => {
   const errs = validateSong(merged);
   if (errs.length) return res.status(400).json({ error: errs.join(' · ') });
   const s = { ...cleanSong(merged), slug: old.slug };
-  await q('UPDATE songs SET level = $1, data = $2::jsonb WHERE id = $3', [s.level, JSON.stringify(s), old.id]);
+  // שיר בסיס שהמנהל ערך מסומן, כדי שעדכוני תוכנית השירים לא ידרסו את השינויים
+  const source = old.source === 'seed' ? 'seed-edited' : old.source;
+  await q('UPDATE songs SET level = $1, data = $2::jsonb, source = $3 WHERE id = $4', [s.level, JSON.stringify(s), source, old.id]);
   res.json({ ok: true });
 }));
 
 app.delete('/api/admin/songs/:id', auth, adminOnly, h(async (req, res) => {
   const song = await getSong(Number(req.params.id));
   if (!song) return res.status(404).json({ error: 'השיר לא נמצא' });
-  if (song.source === 'seed') return res.status(400).json({ error: 'אי אפשר למחוק שיר מתוכנית הבסיס' });
+  if (song.source.startsWith('seed')) return res.status(400).json({ error: 'אי אפשר למחוק שיר מתוכנית הבסיס' });
   await q('DELETE FROM songs WHERE id = $1', [song.id]);
   if (!(await one('SELECT 1 AS x FROM unlocked LIMIT 1'))) {
     const first = (await orderedSongs())[0];

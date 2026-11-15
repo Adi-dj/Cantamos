@@ -5,6 +5,7 @@ import Vocab from './Vocab.jsx';
 import Practice from './Practice.jsx';
 import Quiz from './Quiz.jsx';
 import { speak } from '../lib/speech.js';
+import Bidi from '../lib/Bidi.jsx';
 
 const TABS = [
   ['song', '🎧 השיר'],
@@ -28,12 +29,15 @@ export default function SongPage({ me, songId, tab }) {
     <div className="stack">
       <div className="song-head">
         <a href="#/" className="back">→ חזרה למסלול</a>
-        <div className="eyebrow">רמה {song.level} · {song.stage}{!data.current && data.unlocked && ' · שיר מההיסטוריה'}{!data.unlocked && ' · עוד לא נפתח למשפחה (תצוגת מנהל)'}</div>
+        <div className="eyebrow">רמה {song.level} · <Bidi>{song.stage}</Bidi>{!data.current && data.unlocked && ' · שיר מההיסטוריה'}{!data.unlocked && ' · עוד לא נפתח למשפחה (תצוגת מנהל)'}</div>
         <h1 lang="es" dir="ltr" className="song-title">{song.title}</h1>
         <p className="muted">{song.artist}{song.origin && ` · ${song.origin}`}{song.variant && ` · ניב: ${song.variant}`}</p>
       </div>
       <nav className="tabs" role="tablist">
-        {TABS.map(([k, label]) => <a key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} href={`#/song/${songId}/${k}`} onClick={() => tab === k && setNonce(nonce + 1)}>{label}</a>)}
+        {TABS.map(([k, label]) => {
+          const [icon, ...rest] = label.split(' ');
+          return <a key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} href={`#/song/${songId}/${k}`} onClick={() => tab === k && setNonce(nonce + 1)}><span className="tab-icon" aria-hidden>{icon}</span><span>{rest.join(' ')}</span></a>;
+        })}
       </nav>
 
       {tab === 'song' && <Player me={me} song={song} onSaved={load} />}
@@ -51,8 +55,8 @@ function Grammar({ song }) {
     <div className="stack">
       {g ? (
         <section className="card">
-          <h2>{g.title}</h2>
-          <p className="prose">{g.explanation}</p>
+          <h2><Bidi>{g.title}</Bidi></h2>
+          <p className="prose"><Bidi>{g.explanation}</Bidi></p>
           {g.examples?.length > 0 && (
             <ul className="examples">
               {g.examples.map((ex, i) => (
@@ -94,7 +98,7 @@ function Grammar({ song }) {
       {song.culture && (
         <section className="card culture">
           <h2>🇪🇸 רקע ותרבות</h2>
-          <p className="prose">{song.culture}</p>
+          <p className="prose"><Bidi>{song.culture}</Bidi></p>
         </section>
       )}
     </div>

@@ -39,8 +39,19 @@ function QuizLineChart({ songs, users }) {
     return ls;
   }, [songs, users]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // עכבר: מעבר מעל; מגע: הקשה על עמודת שיר (הטולטיפ נשאר עד ההקשה הבאה)
+  const showSong = (e, i, s) => {
+    const r = e.currentTarget.ownerSVGElement.getBoundingClientRect();
+    setHover(i);
+    setTip({
+      x: Math.max(4, Math.min(e.clientX - r.left + 12, r.width - 184)), y: e.clientY - r.top + 12,
+      title: `${i + 1}. ${s.title}`,
+      rows: users.map((u, ui) => ({ color: colorVar(ui), label: u.name, value: u.quiz[s.id] != null ? `${u.quiz[s.id]}%` : '—' })),
+    });
+  };
+
   return (
-    <div className="viz-wrap" onMouseLeave={() => { setTip(null); setHover(null); }}>
+    <div className="viz-wrap" onPointerLeave={(e) => { if (e.pointerType === 'mouse') { setTip(null); setHover(null); } }}>
       <svg viewBox={`0 0 ${W} ${H}`} className="viz" role="img" aria-label="ציון מבחן הטוב ביותר בכל שיר, לכל בן משפחה">
         {[0, 25, 50, 75, 100].map((v) => (
           <g key={v}>
@@ -71,15 +82,7 @@ function QuizLineChart({ songs, users }) {
         ))}
         {songs.map((s, i) => (
           <rect key={s.id} x={x(i) - (songs.length > 1 ? iw / (songs.length - 1) / 2 : iw / 2)} y={m.t} width={songs.length > 1 ? iw / (songs.length - 1) : iw} height={ih} fill="transparent"
-            onMouseMove={(e) => {
-              const r = e.currentTarget.ownerSVGElement.getBoundingClientRect();
-              setHover(i);
-              setTip({
-                x: Math.min(e.clientX - r.left + 12, r.width - 190), y: e.clientY - r.top + 12,
-                title: `${i + 1}. ${s.title}`,
-                rows: users.map((u, ui) => ({ color: colorVar(ui), label: u.name, value: u.quiz[s.id] != null ? `${u.quiz[s.id]}%` : '—' })),
-              });
-            }} />
+            onPointerMove={(e) => showSong(e, i, s)} onPointerDown={(e) => showSong(e, i, s)} />
         ))}
       </svg>
       {tipEl}
@@ -90,12 +93,19 @@ function QuizLineChart({ songs, users }) {
 function XpBars({ users }) {
   const max = Math.max(1, ...users.map((u) => u.xp));
   const [tipEl, setTip] = useTooltip();
+  const showBar = (e, u, ui) => {
+    const r = e.currentTarget.parentElement.getBoundingClientRect();
+    setTip({
+      x: Math.max(4, Math.min(e.clientX - r.left + 12, r.width - 184)), y: e.clientY - r.top + 12, title: u.name,
+      rows: [{ color: colorVar(ui), label: 'נקודות', value: u.xp.toLocaleString('he-IL') }, { color: colorVar(ui), label: 'פעילויות', value: u.sessions }],
+    });
+  };
   return (
-    <div className="viz-wrap" onMouseLeave={() => setTip(null)}>
+    <div className="viz-wrap" onPointerLeave={(e) => e.pointerType === 'mouse' && setTip(null)}>
       <div className="hbars">
         {users.map((u, ui) => (
           <div key={u.id} className="hbar-row"
-            onMouseMove={(e) => { const r = e.currentTarget.parentElement.getBoundingClientRect(); setTip({ x: Math.min(e.clientX - r.left + 12, r.width - 190), y: e.clientY - r.top + 12, title: u.name, rows: [{ color: colorVar(ui), label: 'נקודות', value: u.xp.toLocaleString('he-IL') }, { color: colorVar(ui), label: 'פעילויות', value: u.sessions }] }); }}>
+            onPointerMove={(e) => showBar(e, u, ui)} onPointerDown={(e) => showBar(e, u, ui)}>
             <span className="hbar-label">{u.name}</span>
             <div className="hbar-track"><span className="hbar-fill" style={{ width: `${(u.xp / max) * 100}%`, background: colorVar(ui) }} /></div>
             <span className="hbar-value">{u.xp.toLocaleString('he-IL')}</span>

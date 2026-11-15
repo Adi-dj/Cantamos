@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import Bidi from '../lib/Bidi.jsx';
 
 export const PRACTICE_KEYS = ['listen', 'flashcards', 'match', 'fill', 'order', 'listening', 'conjugation', 'speak'];
 
@@ -31,7 +32,7 @@ export default function Home({ me }) {
             <div className="eyebrow">השיר המשפחתי הנוכחי · רמה {current.level}</div>
             <h1 lang="es" dir="ltr" className="hero-title">{current.title}</h1>
             <p className="muted">{current.artist} · {current.origin}</p>
-            <p className="stage-pill">{current.stage}</p>
+            <p className="stage-pill"><Bidi>{current.stage}</Bidi></p>
             <SongProgress s={current} />
             <div className="row gap">
               <a className="btn primary" href={`#/song/${current.id}/song`}>▶ להאזין ולקרוא</a>
@@ -54,7 +55,7 @@ export default function Home({ me }) {
                 <span className="node" aria-hidden>{s.unlocked ? (s.current ? '♪' : '✓') : '🔒'}</span>
                 <div className="road-body">
                   <div className="road-title"><span lang="es" dir="ltr">{s.title}</span>{s.source === 'admin' && <em className="badge soft">נוסף ע״י המנהל</em>}</div>
-                  <div className="muted small">{s.stage}</div>
+                  <div className="muted small"><Bidi>{s.stage}</Bidi></div>
                   {s.unlocked && <SongProgress s={s} />}
                 </div>
               </>

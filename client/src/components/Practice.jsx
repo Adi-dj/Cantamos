@@ -31,7 +31,7 @@ export default function Practice({ song, history, onLogged }) {
     const Comp = { flashcards: Flashcards, match: Match, fill: Fill, order: Order, listening: Listening, conjugation: Conjugation, speak: Speak }[act];
     return (
       <div className="stack">
-        <div className="row between">
+        <div className="row between practice-head">
           <button className="btn ghost" onClick={() => setAct(null)}>→ כל הפעילויות</button>
           <h2 className="m0">{ACTIVITY_INFO[act][0]} {ACTIVITY_INFO[act][1]}</h2>
           <button className="btn ghost" onClick={() => setRound(round + 1)}>↻ סבב חדש</button>
