@@ -211,12 +211,40 @@ function QuickAdd({ onDraft, onManual, onClose }) {
   );
 }
 
+function UserEdit({ user, onCancel, onSaved }) {
+  const [name, setName] = useState(user.username);
+  const [pin, setPin] = useState('');
+  const [err, setErr] = useState('');
+  const save = async (e) => {
+    e.preventDefault();
+    const body = {};
+    if (name.trim() !== user.username) body.username = name;
+    if (pin) body.pin = pin;
+    if (!Object.keys(body).length) return onCancel();
+    try {
+      await api.put(`/api/admin/users/${user.id}`, body);
+      onSaved([body.username && 'השם עודכן', body.pin && `הקוד אופס – ${name.trim()} יתחבר/תתחבר מחדש עם הקוד החדש`].filter(Boolean).join(' · ') + ' ✓');
+    } catch (e2) { setErr(e2.message); }
+  };
+  return (
+    <form className="form user-edit" onSubmit={save}>
+      <label>שם משתמש<input value={name} onChange={(e) => setName(e.target.value)} required autoComplete="off" /></label>
+      <label>קוד חדש (4–8 ספרות) – להשאיר ריק אם לא משנים
+        <input value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={8} autoComplete="new-password" placeholder="••••" />
+      </label>
+      {err && <div className="error">{err}</div>}
+      <div className="row gap"><button className="btn primary">שמירה</button><button type="button" className="btn ghost" onClick={onCancel}>ביטול</button></div>
+    </form>
+  );
+}
+
 export default function Admin() {
   const [state, setState] = useState(null);
   const [users, setUsers] = useState([]);
   const [sugg, setSugg] = useState([]);
   const [songsFull, setSongsFull] = useState({});
-  const [editing, setEditing] = useState(null); // {song} | {template}
+  const [editing, setEditing] = useState(null); // {song} | {template} | {quick}
+  const [editUser, setEditUser] = useState(null);
   const [msg, setMsg] = useState('');
   const load = useCallback(() => {
     api.get('/api/state').then(setState);
@@ -300,23 +328,31 @@ export default function Admin() {
 
       <section className="card">
         <h2>משתמשים</h2>
-        <table className="data-table">
-          <thead><tr><th>שם</th><th>הצטרף/ה</th><th /></tr></thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td>{u.username}{u.is_admin ? <em className="badge">מנהל</em> : null}</td>
-                <td className="small muted">{new Date(u.created_at).toLocaleDateString('he-IL')}</td>
-                <td className="row gap">
-                  {!u.is_admin && <>
-                    <button className="btn small" onClick={() => { const pin = prompt(`קוד חדש ל-${u.username} (4–8 ספרות):`); if (pin) act(() => api.post(`/api/admin/users/${u.id}/pin`, { pin }), 'הקוד עודכן'); }}>איפוס קוד</button>
-                    <button className="btn small ghost" onClick={() => confirm(`למחוק את ${u.username} וכל ההיסטוריה שלו/ה?`) && act(() => api.del(`/api/admin/users/${u.id}`), 'המשתמש נמחק')}>מחיקה</button>
-                  </>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <p className="small muted">אפשר לשנות לכל בן משפחה את שם המשתמש ואת הקוד האישי. ההתקדמות וההיסטוריה נשמרות.</p>
+        <ul className="user-admin">
+          {users.map((u) => (
+            <li key={u.id}>
+              {editUser === u.id ? (
+                <UserEdit user={u} onCancel={() => setEditUser(null)} onSaved={(m) => { setEditUser(null); setMsg(m); load(); }} />
+              ) : (
+                <div className="row between wrap">
+                  <div>
+                    <b>{u.username}</b>{u.is_admin ? <em className="badge">מנהל</em> : null}
+                    <div className="small muted">הצטרף/ה: {new Date(u.created_at).toLocaleDateString('he-IL')}</div>
+                  </div>
+                  {u.is_admin ? (
+                    <span className="small muted">שם וקוד המנהל: בהגדרות Vercel</span>
+                  ) : (
+                    <div className="row gap">
+                      <button className="btn small" onClick={() => setEditUser(u.id)}>✏️ עריכה / איפוס קוד</button>
+                      <button className="btn small ghost" onClick={() => confirm(`למחוק את ${u.username} וכל ההיסטוריה שלו/ה?`) && act(() => api.del(`/api/admin/users/${u.id}`), 'המשתמש נמחק')}>מחיקה</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );

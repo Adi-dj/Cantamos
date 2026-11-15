@@ -228,6 +228,27 @@ app.delete('/api/admin/users/:id', auth, adminOnly, h(async (req, res) => {
   await q('DELETE FROM users WHERE id = $1 AND NOT is_admin', [id]);
   res.json({ ok: true });
 }));
+// עריכת משתמש: שם משתמש חדש ו/או קוד חדש. ההיסטוריה נשמרת (היא מקושרת למזהה, לא לשם).
+app.put('/api/admin/users/:id', auth, adminOnly, h(async (req, res) => {
+  const id = Number(req.params.id);
+  const u = await one('SELECT id, is_admin FROM users WHERE id = $1', [id]);
+  if (!u) return res.status(404).json({ error: 'המשתמש לא נמצא' });
+  if (u.is_admin) return res.status(400).json({ error: 'את שם המנהל ואת הקוד שלו משנים בהגדרות של Vercel (ADMIN_USERNAME / ADMIN_PASSWORD)' });
+  const username = req.body.username != null ? cleanName(req.body.username) : null;
+  const pin = req.body.pin ? String(req.body.pin) : null;
+  if (username != null) {
+    if (!USERNAME_RE.test(username) || username.length < 2 || username.length > 24) return res.status(400).json({ error: 'שם משתמש: 2–24 תווים, אותיות, ספרות ורווחים' });
+    const taken = await findUser(username);
+    if (taken && taken.id !== id) return res.status(409).json({ error: 'שם המשתמש כבר תפוס' });
+  }
+  if (pin && !/^\d{4,8}$/.test(pin)) return res.status(400).json({ error: 'קוד אישי: 4–8 ספרות' });
+  if (username != null) await q('UPDATE users SET username = $1, display_name = $1 WHERE id = $2', [username, id]);
+  if (pin) {
+    await q('UPDATE users SET pin_hash = $1 WHERE id = $2', [hashPin(pin), id]);
+    await q('DELETE FROM sessions WHERE user_id = $1', [id]); // מתנתק מכל המכשירים
+  }
+  res.json({ ok: true });
+}));
 app.post('/api/admin/users/:id/pin', auth, adminOnly, h(async (req, res) => {
   const pin = String(req.body.pin || '');
   if (!/^\d{4,8}$/.test(pin)) return res.status(400).json({ error: 'קוד אישי: 4–8 ספרות' });
