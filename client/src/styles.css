@@ -423,3 +423,12 @@ bdi { unicode-bidi: isolate; }
 .badge { white-space: nowrap; display: inline-block; }
 
 .speed-control { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+
+/* הכותרת לא נשברת לשתי שורות (Cantamo / s) */
+.brand { white-space: nowrap; flex: none; }
+.me { margin-inline-start: auto; flex: none; }
+.stage-pill { border-radius: 14px; }
+@media (max-width: 640px) {
+  .brand { font-size: 1.1rem; }
+  .brand-mark { width: 30px; height: 30px; }
+}
