@@ -3,6 +3,7 @@ import { logProgress } from '../api.js';
 import { speak, canRecognize, listenOnce } from '../lib/speech.js';
 import { shuffle, matchPairs, fillBlanks, orderTasks, conjugationTasks, listeningTasks, norm } from '../lib/exercises.js';
 import { Pronunciation } from './Vocab.jsx';
+import SpeedControl from './SpeedControl.jsx';
 
 export const ACTIVITY_INFO = {
   listen: ['🎧', 'האזנה לשיר'],
@@ -37,6 +38,7 @@ export default function Practice({ song, history, onLogged }) {
           <button className="btn ghost" onClick={() => setRound(round + 1)}>↻ סבב חדש</button>
         </div>
         <Comp {...props} />
+        <SpeedControl />
       </div>
     );
   }

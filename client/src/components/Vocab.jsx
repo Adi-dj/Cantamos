@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { speak } from '../lib/speech.js';
 import { analyzeText, pronunciationTips } from '../lib/pronounce.js';
 import Bidi from '../lib/Bidi.jsx';
+import SpeedControl from './SpeedControl.jsx';
 
 const TYPE_HE = { noun: 'שם עצם', verb: 'פועל', adj: 'שם תואר', num: 'מספר', phrase: 'ביטוי', other: 'מילה' };
 const FILTERS = [['all', 'הכול'], ['noun', 'שמות עצם'], ['verb', 'פעלים'], ['adj', 'תארים'], ['num', 'מספרים'], ['other', 'אחר']];
@@ -28,6 +29,7 @@ export default function Vocab({ song }) {
   const list = song.vocab.filter((w) => filter === 'all' || (filter === 'other' ? !['noun', 'verb', 'adj', 'num'].includes(w.type) : w.type === filter));
   return (
     <div className="stack">
+      <SpeedControl sample={song.vocab[0]?.es} />
       <div className="chips">
         {FILTERS.map(([k, l]) => <button key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setFilter(k)}>{l}</button>)}
       </div>

@@ -421,3 +421,5 @@ bdi { unicode-bidi: isolate; }
 
 .sugg-artist { font-weight: 700; font-size: 1.05rem; padding-top: 1rem !important; border-bottom: 2px solid var(--accent) !important; color: var(--accent); }
 .badge { white-space: nowrap; display: inline-block; }
+
+.speed-control { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }

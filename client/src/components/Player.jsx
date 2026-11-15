@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { api, logProgress } from '../api.js';
 import { speak, stopSpeaking, canSpeak } from '../lib/speech.js';
 import { hebrewTranslit } from '../lib/pronounce.js';
+import SpeedControl from './SpeedControl.jsx';
 
 // ---------- Spotify iFrame API ----------
 let apiPromise;
@@ -172,10 +173,11 @@ export default function Player({ me, song, onSaved }) {
         {canSpeak() && (
           <div className="controls">
             {readIdx == null
-              ? <button className="btn" onClick={() => readFrom(0)}>🗣 הקראת המילים בקול (לאט)</button>
+              ? <button className="btn" onClick={() => readFrom(0)}>🗣 הקראת המילים בקול</button>
               : <button className="btn" onClick={stopReading}>⏹ עצירת ההקראה</button>}
           </div>
         )}
+        {canSpeak() && <SpeedControl sample={readIdx == null ? song.lines[0]?.es : null} />}
         {waitingLine != null && (
           <div className="learn-pause">
             <div lang="es" dir="ltr" className="es big">{lines[waitingLine].es}</div>
@@ -192,7 +194,7 @@ export default function Player({ me, song, onSaved }) {
           <details className="admin-box" open={!uri ? true : undefined}>
             <summary>כלי מנהל: הקלטה וסנכרון</summary>
             <div className="form">
-              <label>קישור לשיר בספוטיפיי (Share → Copy Song Link)
+              <label><span>קישור לשיר בספוטיפיי <bdi dir="ltr">(Share → Copy Song Link)</bdi></span>
                 <div className="row gap">
                   <input dir="ltr" value={urlDraft} onChange={(e) => setUrlDraft(e.target.value)} placeholder="https://open.spotify.com/track/..." />
                   <button className="btn" onClick={saveUrl}>שמירה</button>
