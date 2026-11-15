@@ -43,14 +43,34 @@ function formToSong(f, oldLines = []) {
   };
 }
 
+function LinesReview({ f, setF }) {
+  const es = rows(f.linesEs), he = rows(f.linesHe);
+  const setLine = (i, key, val) => {
+    const arr = key === 'es' ? [...es] : [...he];
+    arr[i] = val.replace(/\n/g, ' ');
+    setF({ ...f, [key === 'es' ? 'linesEs' : 'linesHe']: arr.join('\n') });
+  };
+  return (
+    <ol className="lines-review">
+      {es.map((line, i) => (
+        <li key={i} className={!he[i] || he[i] === '—' ? 'missing' : ''}>
+          <input dir="ltr" lang="es" value={line} onChange={(e) => setLine(i, 'es', e.target.value)} aria-label={`שורה ${i + 1} בספרדית`} />
+          <input value={he[i] || ''} onChange={(e) => setLine(i, 'he', e.target.value)} placeholder="תרגום…" aria-label={`תרגום שורה ${i + 1}`} />
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function SongEditor({ song, template, onClose, onSaved }) {
   const [f, setF] = useState(() => songToForm(song || template));
+  const [linesView, setLinesView] = useState(template?.lines?.length ? 'review' : 'text');
   const [err, setErr] = useState('');
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const save = async () => {
     setErr('');
     try {
-      const data = formToSong(f, song?.lines);
+      const data = formToSong(f, (song || template)?.lines);
       if (song) await api.put(`/api/admin/songs/${song.id}`, data);
       else await api.post('/api/admin/songs', data);
       onSaved();
@@ -60,7 +80,11 @@ function SongEditor({ song, template, onClose, onSaved }) {
   return (
     <section className="card editor">
       <div className="row between"><h2 className="m0">{song ? `עריכת "${song.title}"` : 'הוספת שיר חדש'}</h2><button className="btn ghost" onClick={onClose}>✕ סגירה</button></div>
-      <p className="small muted">התרגילים, המבחן וההגייה נוצרים אוטומטית מהשורות ומאוצר המילים. מילים של שירים מודרניים – הדביקו מהעותק שלכם (למשל מתוך ספוטיפיי).</p>
+      <p className="small muted">התרגילים, המבחן וההגייה נוצרים אוטומטית מהשורות ומאוצר המילים.</p>
+      {template?.lines?.length > 0 && (
+        <div className="note">✨ המילים, התרגום ואוצר המילים מולאו אוטומטית. התרגום הוא תרגום מכונה – עברו עליו ותקנו לפני השמירה. שורות שלא תורגמו מסומנות בצבע.</div>
+      )}
+      {template?.warnings?.map((w) => <div key={w} className="note">⚠️ {w}</div>)}
       <div className="form grid2">
         <label>שם השיר<input dir="ltr" value={f.title} onChange={set('title')} /></label>
         <label>אמן / להקה<input dir="ltr" value={f.artist} onChange={set('artist')} /></label>
@@ -70,9 +94,19 @@ function SongEditor({ song, template, onClose, onSaved }) {
         <label>ניב<input value={f.variant} onChange={set('variant')} placeholder="España / México / Argentina" /></label>
         <label className="span2">קישור ספוטיפיי לשיר<input dir="ltr" value={f.spotifyUrl} onChange={set('spotifyUrl')} placeholder="https://open.spotify.com/track/..." /></label>
       </div>
+      <div className="row between wrap">
+        <h3 className="m0">מילים ותרגום · {es} שורות</h3>
+        <div className="seg small">
+          <button type="button" className={linesView === 'review' ? 'on' : ''} onClick={() => setLinesView('review')}>שורה-שורה</button>
+          <button type="button" className={linesView === 'text' ? 'on' : ''} onClick={() => setLinesView('text')}>טקסט חופשי</button>
+        </div>
+      </div>
+      {linesView === 'review' && <LinesReview f={f} setF={setF} />}
       <div className="form grid2">
+        {linesView === 'text' && <>
         <label>שורות בספרדית (שורה בכל שורה) · {es}<textarea dir="ltr" lang="es" rows={12} value={f.linesEs} onChange={set('linesEs')} /></label>
         <label>תרגום לעברית, באותו סדר · {he} {es !== he && <span className="error-inline">לא תואם!</span>}<textarea rows={12} value={f.linesHe} onChange={set('linesHe')} /></label>
+        </>}
         <label className="span2">אוצר מילים – בכל שורה: <code dir="ltr">מילה | תרגום | סוג | הערה</code> (סוג: noun / verb / adj / num / phrase / other)
           <textarea dir="ltr" rows={8} value={f.vocab} onChange={set('vocab')} placeholder="la vida | החיים | noun&#10;cambiar | לשנות | verb" />
         </label>
@@ -86,6 +120,93 @@ function SongEditor({ song, template, onClose, onSaved }) {
       </div>
       {err && <div className="error">{err}</div>}
       <div className="row gap"><button className="btn primary" onClick={save}>💾 שמירה</button><button className="btn ghost" onClick={onClose}>ביטול</button></div>
+    </section>
+  );
+}
+
+const fmtDur = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
+// הוספה מהירה: קישור ספוטיפיי או שם שיר → מילים מסונכרנות → תרגום ואוצר מילים אוטומטיים
+function QuickAdd({ onDraft, onManual, onClose }) {
+  const [mode, setMode] = useState('link');
+  const [link, setLink] = useState('');
+  const [title, setTitle] = useState('');
+  const [artist, setArtist] = useState('');
+  const [found, setFound] = useState(null);
+  const [lyrics, setLyrics] = useState('');
+  const [busy, setBusy] = useState('');
+  const [err, setErr] = useState('');
+
+  const search = async (e) => {
+    e?.preventDefault();
+    setErr(''); setFound(null); setBusy('מחפשים את המילים…');
+    try {
+      setFound(await api.post('/api/admin/import/search', mode === 'link' ? { spotifyUrl: link, title, artist } : { title, artist }));
+    } catch (e2) { setErr(e2.message); } finally { setBusy(''); }
+  };
+  const build = async (body) => {
+    setErr(''); setBusy('מתרגמים ובונים אוצר מילים… (עד חצי דקה)');
+    try {
+      onDraft(await api.post('/api/admin/import/build', { title: found?.title || title, artist: found?.artist || artist, spotifyUrl: found?.spotifyUrl || '', ...body }));
+    } catch (e2) { setErr(e2.message); setBusy(''); }
+  };
+
+  return (
+    <section className="card quick-add stack">
+      <div className="row between"><h2 className="m0">✨ הוספת שיר</h2><button className="btn ghost" onClick={onClose}>✕ סגירה</button></div>
+      <p className="muted small m0">מדביקים קישור לשיר בספוטיפיי, והאפליקציה מביאה את המילים (בדרך כלל עם סנכרון), מתרגמת לעברית ובוחרת אוצר מילים. אחר כך עוברים על התוצאה ושומרים.</p>
+
+      <div className="seg small" style={{ alignSelf: 'flex-start' }}>
+        <button type="button" className={mode === 'link' ? 'on' : ''} onClick={() => setMode('link')}>קישור מספוטיפיי</button>
+        <button type="button" className={mode === 'name' ? 'on' : ''} onClick={() => setMode('name')}>שם שיר ואמן</button>
+      </div>
+      <form className="form" onSubmit={search}>
+        {mode === 'link' ? (
+          <label>קישור לשיר בספוטיפיי
+            <input dir="ltr" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://open.spotify.com/track/…" required />
+            <span className="small muted">בספוטיפיי: ⋯ ← Share ← Copy Song Link</span>
+          </label>
+        ) : (
+          <div className="grid2 m0">
+            <label>שם השיר<input dir="ltr" lang="es" value={title} onChange={(e) => setTitle(e.target.value)} required /></label>
+            <label>אמן<input dir="ltr" value={artist} onChange={(e) => setArtist(e.target.value)} /></label>
+          </div>
+        )}
+        <button className="btn primary" disabled={!!busy}>🔎 חיפוש מילים</button>
+      </form>
+
+      {busy && <div className="row gap"><div className="spinner small-spinner" /> <span>{busy}</span></div>}
+      {err && <div className="error">{err}</div>}
+
+      {found && !busy && (
+        <div className="stack">
+          <div className="small muted">חיפשנו: <b lang="es" dir="ltr">{found.title}</b>{found.artist && <> · <span lang="es" dir="ltr">{found.artist}</span></>}</div>
+          {found.results.length ? (
+            <>
+              <h3 className="m0">בחרו את הגרסה המתאימה</h3>
+              <p className="small muted m0">כדאי לבחור תוצאה עם ✓ סנכרון ובאורך שדומה לאורך השיר בספוטיפיי – אז המילים יודגשו בזמן הנכון.</p>
+              <ul className="results">
+                {found.results.map((r) => (
+                  <li key={r.id}>
+                    <button className="result-btn" onClick={() => build({ lrclibId: r.id, title: r.title, artist: r.artist })}>
+                      <span className="row between"><b lang="es" dir="ltr">{r.title}</b><span className="small muted" dir="ltr">{fmtDur(r.duration)}</span></span>
+                      <span className="small muted" dir="ltr">{r.artist}{r.album && ` · ${r.album}`}</span>
+                      <span className="small" lang="es" dir="ltr">{r.preview.join(' / ')}</span>
+                      <span className={`badge ${r.synced ? '' : 'soft'}`}>{r.synced ? '✓ עם סנכרון' : 'בלי סנכרון'}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : <div className="note">לא מצאנו את המילים של השיר הזה. אפשר להדביק אותן למטה.</div>}
+          <details>
+            <summary>לא מצאתם? הדביקו את המילים בעצמכם</summary>
+            <textarea dir="ltr" lang="es" rows={8} value={lyrics} onChange={(e) => setLyrics(e.target.value)} placeholder="שורה בכל שורה…" />
+            <button className="btn" disabled={!lyrics.trim()} onClick={() => build({ lyrics })}>תרגום ובניית אוצר מילים</button>
+          </details>
+        </div>
+      )}
+      <button className="btn ghost small" style={{ alignSelf: 'flex-start' }} onClick={onManual}>או: מילוי ידני של כל הטופס</button>
     </section>
   );
 }
@@ -115,6 +236,7 @@ export default function Admin() {
     scrollTo(0, 0);
   };
 
+  if (editing?.quick) return <QuickAdd onClose={() => setEditing(null)} onManual={() => setEditing({ template: null })} onDraft={(d) => { setEditing({ template: d }); scrollTo(0, 0); }} />;
   if (editing) return <SongEditor {...editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setSongsFull({}); setMsg('השיר נשמר ✓'); load(); }} />;
 
   return (
@@ -141,7 +263,7 @@ export default function Admin() {
       </section>
 
       <section className="card">
-        <div className="row between"><h2 className="m0">שירים במסלול</h2><button className="btn primary" onClick={() => setEditing({ template: null })}>＋ שיר חדש</button></div>
+        <div className="row between"><h2 className="m0">שירים במסלול</h2><button className="btn primary" onClick={() => setEditing({ quick: true })}>＋ שיר חדש</button></div>
         <table className="data-table">
           <thead><tr><th>רמה</th><th>שיר</th><th>מצב</th><th /></tr></thead>
           <tbody>

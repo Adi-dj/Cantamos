@@ -396,3 +396,19 @@ bdi { unicode-bidi: isolate; }
   .practice-head .btn { padding: .4rem .5rem; font-size: .85rem; white-space: nowrap; }
   .exercise > .match-cols { gap: .5rem; }
 }
+
+/* הוספה מהירה */
+.results { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .5rem; }
+.result-btn { font: inherit; color: inherit; width: 100%; text-align: start; display: flex; flex-direction: column; gap: .2rem; align-items: stretch; padding: .75rem .9rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; }
+.result-btn:hover { border-color: var(--accent); }
+.result-btn .badge { align-self: flex-start; margin: .2rem 0 0; }
+.small-spinner { width: 20px; height: 20px; margin: 0; border-width: 2px; }
+.grid2.m0 { margin: 0; }
+.lines-review { list-style: none; counter-reset: ln; padding: 0; margin: .6rem 0 1rem; display: flex; flex-direction: column; gap: .4rem; }
+.lines-review li { counter-increment: ln; display: grid; grid-template-columns: 2.2rem 1fr 1fr; gap: .4rem; align-items: center; }
+.lines-review li::before { content: counter(ln); color: var(--ink-3); font-size: .8rem; text-align: center; }
+.lines-review li.missing input:last-child { border-color: var(--accent); background: var(--accent-soft); }
+@media (max-width: 640px) {
+  .lines-review li { grid-template-columns: 1.6rem 1fr; padding-bottom: .4rem; border-bottom: 1px solid var(--line); }
+  .lines-review li input:last-child { grid-column: 2; }
+}

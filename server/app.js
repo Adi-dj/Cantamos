@@ -3,6 +3,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import { q, one, ready, hashPin, checkPin, cleanName, orderedSongs, getSong, unlockedIds, currentSongId } from './db.js';
 import { MODERN_SUGGESTIONS } from './seedSongs.js';
+import { spotifyInfo, searchLyrics, buildDraft } from './importer.js';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
@@ -235,6 +236,31 @@ app.post('/api/admin/users/:id/pin', auth, adminOnly, h(async (req, res) => {
   await q('DELETE FROM sessions WHERE user_id = $1', [id]);
   res.json({ ok: true });
 }));
+// ---------- הוספה מהירה ----------
+const netError = (res, what) => res.status(502).json({ error: `לא הצלחנו להתחבר ל${what}. נסו שוב בעוד רגע.` });
+app.post('/api/admin/import/search', auth, adminOnly, h(async (req, res) => {
+  let { title = '', artist = '' } = req.body;
+  let info = null;
+  if (req.body.spotifyUrl) {
+    info = await spotifyInfo(req.body.spotifyUrl).catch(() => null);
+    if (!info) return res.status(400).json({ error: 'זה לא נראה כמו קישור לשיר בספוטיפיי (צריך להיות …/track/…)' });
+    title = title || info.title; artist = artist || info.artist;
+  }
+  title = String(title).trim(); artist = String(artist).trim();
+  if (!title) return res.status(400).json({ error: info ? 'לא הצלחנו לקרוא את שם השיר מספוטיפיי – כתבו אותו ידנית' : 'כתבו שם שיר' });
+  try {
+    res.json({ title, artist, spotifyUrl: info?.spotifyUrl || '', results: await searchLyrics({ title, artist }) });
+  } catch { netError(res, 'שירות המילים'); }
+}));
+app.post('/api/admin/import/build', auth, adminOnly, h(async (req, res) => {
+  const { lrclibId, lyrics, title, artist, spotifyUrl } = req.body;
+  if (!lrclibId && !String(lyrics || '').trim()) return res.status(400).json({ error: 'בחרו תוצאה או הדביקו מילים' });
+  try { res.json(await buildDraft({ lrclibId, lyrics, title, artist, spotifyUrl })); } catch (e) {
+    if (e.message?.startsWith('לא נמצאו')) return res.status(400).json({ error: e.message });
+    netError(res, 'שירות המילים או התרגום');
+  }
+}));
+
 app.get('/api/admin/suggestions', auth, adminOnly, (req, res) => res.json(MODERN_SUGGESTIONS));
 
 app.use('/api', (err, req, res, next) => { // eslint-disable-line no-unused-vars
