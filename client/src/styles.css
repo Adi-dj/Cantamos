@@ -432,3 +432,9 @@ bdi { unicode-bidi: isolate; }
   .brand { font-size: 1.1rem; }
   .brand-mark { width: 30px; height: 30px; }
 }
+
+/* הקלטה בתרגיל ההגייה */
+.btn.recording { background: var(--bad); border-color: var(--bad); color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+.rec-live { color: var(--bad); font-weight: 600; }
+@keyframes pulse { 50% { opacity: .75; } }
+@media (prefers-reduced-motion: reduce) { .btn.recording { animation: none; } }

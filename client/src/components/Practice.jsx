@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { logProgress } from '../api.js';
-import { speak, canRecognize, listenOnce } from '../lib/speech.js';
+import { speak, canRecognize, listenOnce, canRecord, startRecording, isIOSHomeScreen } from '../lib/speech.js';
 import { shuffle, matchPairs, fillBlanks, orderTasks, conjugationTasks, listeningTasks, norm } from '../lib/exercises.js';
 import { Pronunciation } from './Vocab.jsx';
 import SpeedControl from './SpeedControl.jsx';
@@ -255,17 +255,42 @@ function similarity(a, b) {
 function SpeakTask({ item, onAnswer }) {
   const [status, setStatus] = useState('');
   const [heard, setHeard] = useState(null);
-  const rec = canRecognize();
-  const tryIt = async () => {
+  const [recState, setRecState] = useState('idle'); // idle | recording | done
+  const [myUrl, setMyUrl] = useState(null);
+  const recRef = useRef(null);
+  const audioRef = useRef(null);
+  const auto = canRecognize();
+  const record = canRecord();
+
+  useEffect(() => () => { recRef.current?.stop(); if (myUrl) URL.revokeObjectURL(myUrl); }, [myUrl]);
+
+  const tryAuto = async () => {
     setStatus('🎙 מקשיבים… דברו עכשיו'); setHeard(null);
     try {
       const alts = await listenOnce();
       const best = alts.reduce((b, a) => (similarity(a, item.es) > similarity(b, item.es) ? a : b), alts[0]);
-      const s = similarity(best, item.es);
-      setHeard({ text: best, s });
-      setStatus(s >= 0.8 ? '¡Excelente! 🎉' : s >= 0.55 ? 'כמעט! נסו שוב או המשיכו' : 'עוד לא – הקשיבו ונסו שוב');
+      const sim = similarity(best, item.es);
+      setHeard({ text: best, s: sim });
+      setStatus(sim >= 0.8 ? '¡Excelente! 🎉' : sim >= 0.55 ? 'כמעט! נסו שוב או המשיכו' : 'עוד לא – הקשיבו ונסו שוב');
     } catch (e) { setStatus(e.message); }
   };
+
+  const toggleRecord = async () => {
+    if (recState === 'recording') { recRef.current?.stop(); return; }
+    setStatus(''); 
+    try {
+      const r = await startRecording({ maxMs: 8000 });
+      recRef.current = r;
+      setRecState('recording');
+      const url = await r.finished;
+      recRef.current = null;
+      setMyUrl((old) => { if (old) URL.revokeObjectURL(old); return url; });
+      setRecState('done');
+      setStatus('הקשיבו להקלטה שלכם ולהגייה הנכונה – ואז סמנו איך הלך.');
+    } catch (e) { setRecState('idle'); setStatus(e.message); }
+  };
+  const playMine = () => { if (!audioRef.current || !myUrl) return; audioRef.current.src = myUrl; audioRef.current.play().catch(() => setStatus('לא הצלחנו לנגן את ההקלטה')); };
+
   return (
     <>
       <p lang="es" dir="ltr" className="es huge">{item.es}</p>
@@ -273,20 +298,23 @@ function SpeakTask({ item, onAnswer }) {
       <Pronunciation text={item.es} />
       <div className="row gap center">
         <button className="btn" onClick={() => speak(item.es, { rate: 0.75 })}>🔊 איך אומרים</button>
-        {rec && <button className="btn primary" onClick={tryIt}>🎙 תורכם לומר</button>}
+        {record && (
+          <button className={`btn ${recState === 'recording' ? 'recording' : 'primary'}`} onClick={toggleRecord}>
+            {recState === 'recording' ? '⏹ סיום הקלטה' : recState === 'done' ? '🎙 הקלטה חוזרת' : '🎙 הקליטו את עצמכם'}
+          </button>
+        )}
+        {myUrl && recState === 'done' && <button className="btn" onClick={playMine}>▶ ההקלטה שלי</button>}
+        {auto && <button className="btn" onClick={tryAuto}>🤖 בדיקה אוטומטית</button>}
       </div>
+      <audio ref={audioRef} playsInline hidden />
+      {recState === 'recording' && <p className="center-text rec-live">● מקליטים… אמרו את המשפט ולחצו "סיום" (עד 8 שניות)</p>}
       {status && <p className="center-text">{status}</p>}
       {heard && <p className="small muted center-text" dir="ltr">שמענו: “{heard.text}” · {Math.round(heard.s * 100)}%</p>}
+      {!auto && isIOSHomeScreen() && <p className="small muted center-text">באפליקציה ממסך הבית אין בדיקה אוטומטית – מקליטים ומשווים. ב-Safari יש גם בדיקה אוטומטית.</p>}
+      {!record && !auto && <p className="small muted center-text">אין גישה למיקרופון בדפדפן הזה. אמרו בקול והעריכו בעצמכם:</p>}
       <div className="row gap center">
-        {rec ? (
-          <button className="btn" onClick={() => onAnswer(!!heard && heard.s >= 0.8)}>הבא ←</button>
-        ) : (
-          <>
-            <span className="small muted">הדפדפן לא תומך בזיהוי דיבור (נסו Chrome). אמרו בקול והעריכו בעצמכם:</span>
-            <button className="btn" onClick={() => onAnswer(false)}>צריך עוד תרגול</button>
-            <button className="btn primary" onClick={() => onAnswer(true)}>אמרתי נכון ✓</button>
-          </>
-        )}
+        <button className="btn" onClick={() => onAnswer(false)}>צריך עוד תרגול</button>
+        <button className={`btn ${heard?.s >= 0.8 ? 'primary' : ''}`} onClick={() => onAnswer(true)}>אמרתי נכון ✓</button>
       </div>
     </>
   );
